@@ -18,7 +18,7 @@ func main() {
 		panic(err)
 	}
 
-	// userUsecase := usecase.NewUserUsecase(repository.NewUserRepository(db))
+	// userUsecase := usecases.NewUserUsecase(repositories.NewUserRepository(db))
 	// userUsecase.Create(&model.User{
 	// 	Email:    "test@gmail.com",
 	// 	Password: "12345678",
