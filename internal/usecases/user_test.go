@@ -7,7 +7,6 @@ import (
 	"github.com/shinhagunn/eug/filters"
 	"github.com/shinhagunn/todo-backend/config"
 	"github.com/shinhagunn/todo-backend/internal/models"
-	"github.com/shinhagunn/todo-backend/internal/repositories"
 	"github.com/shinhagunn/todo-backend/pkg/postgres"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -27,7 +26,7 @@ func TestUserUsecase(t *testing.T) {
 
 	db.AutoMigrate(&models.User{})
 
-	userUsecase := NewUserUsecase(repositories.NewUserRepository(db))
+	userUsecase := NewUserUsecase(db)
 
 	newUser := &models.User{
 		Email:    "test@gmail.com",
