@@ -14,12 +14,11 @@ import (
 func TestUserUsecase(t *testing.T) {
 	ctx := context.TODO()
 
-	cfg, err := config.New()
-	if err != nil {
+	if err := config.New(); err != nil {
 		t.Fatalf("Failed to connect to config: %v", err)
 	}
 
-	db, err := postgres.New(cfg)
+	db, err := postgres.New(config.Cfg)
 	if err != nil {
 		t.Fatalf("Failed to connect to database: %v", err)
 	}

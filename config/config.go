@@ -4,7 +4,8 @@ import "github.com/ilyakaznacheev/cleanenv"
 
 type (
 	Config struct {
-		DB `yaml:"db"`
+		DB        `yaml:"db"`
+		SecretKey string `env:"SECRET_KEY" env-default:"LgszAIV5dBwmy93buOvFDSvmXaam1rzjNAHQ9HJNizE"`
 	}
 
 	DB struct {
@@ -16,12 +17,14 @@ type (
 	}
 )
 
-func New() (*Config, error) {
-	cfg := &Config{}
+var Cfg *Config
 
-	if err := cleanenv.ReadEnv(cfg); err != nil {
-		return nil, err
+func New() error {
+	Cfg = &Config{}
+
+	if err := cleanenv.ReadEnv(Cfg); err != nil {
+		return err
 	}
 
-	return cfg, nil
+	return nil
 }
