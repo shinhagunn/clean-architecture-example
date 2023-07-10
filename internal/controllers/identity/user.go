@@ -6,21 +6,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/shinhagunn/eug/filters"
+	"github.com/shinhagunn/todo-backend/internal/helpers"
 	"github.com/shinhagunn/todo-backend/internal/models"
 	"github.com/shinhagunn/todo-backend/pkg/jwt"
 )
 
-// TODO: Add support handle print error
-
-type ErrorCustom struct {
-	Code int
-	Mess string
-}
-
 var (
-	ErrUserPasswordInvalid = ErrorCustom{http.StatusBadRequest, "identity.user.password_invalid"}
-	ErrUserNotFound        = ErrorCustom{http.StatusNotFound, "identity.user.not_found"}
-	ErrUserJWTGenerate     = ErrorCustom{http.StatusBadRequest, "identity.user.jwt_generate"}
+	ErrUserPasswordInvalid = helpers.APIError{Code: http.StatusBadRequest, Message: "identity.user.password_invalid"}
+	ErrUserNotFound        = helpers.APIError{Code: http.StatusNotFound, Message: "identity.user.not_found"}
+	ErrUserJWTGenerate     = helpers.APIError{Code: http.StatusBadRequest, Message: "identity.user.jwt_generate"}
 )
 
 // POST: /register
@@ -64,20 +58,22 @@ func (h Handler) Login(c *gin.Context) {
 
 	user, err := h.userUsecase.First(context.TODO(), filters.WithFieldEqual("email", payload.Email))
 	if err != nil || user == nil {
-		c.JSON(ErrUserNotFound.Code, ErrUserNotFound.Mess)
+		c.JSON(ErrUserNotFound.Code, ErrUserNotFound.Message)
 		return
 	}
 
 	if !user.CheckPassword(payload.Password) {
-		c.JSON(ErrUserPasswordInvalid.Code, ErrUserPasswordInvalid.Mess)
+		c.JSON(ErrUserPasswordInvalid.Code, ErrUserPasswordInvalid.Message)
 		return
 	}
 
 	token, err := jwt.GenerateJWTToken(user.UID)
 	if err != nil {
-		c.JSON(ErrUserJWTGenerate.Code, ErrUserJWTGenerate.Mess)
+		c.JSON(ErrUserJWTGenerate.Code, ErrUserJWTGenerate.Message)
 		return
 	}
+
+	c.Header("Authorization", "Bearer "+token)
 
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }

@@ -9,6 +9,11 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+type APIError struct {
+	Code    int
+	Message string
+}
+
 type Helpers struct{}
 
 func (h Helpers) ParserData(c *gin.Context, payload interface{}, prefix string) error {

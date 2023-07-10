@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-
-	"github.com/shinhagunn/todo-backend/utils"
+	"strings"
 )
 
 func main() {
-	fmt.Println(utils.GenerateUID())
+	s := "Bearer sadfsdfsdf"
+	s = strings.TrimPrefix(s, "Bearer ")
+	fmt.Println(s)
 }

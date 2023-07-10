@@ -17,7 +17,7 @@ func GenerateJWTToken(uid string) (string, error) {
 	claims := &Claims{
 		UID: uid,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Minute).Unix(),
+			ExpiresAt: time.Now().Add(3 * time.Minute).Unix(),
 		},
 	}
 

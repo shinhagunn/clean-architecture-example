@@ -6,16 +6,46 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/shinhagunn/eug/filters"
+	"github.com/shinhagunn/todo-backend/internal/helpers"
 	"github.com/shinhagunn/todo-backend/internal/models"
+)
+
+// TODO: Add support func GET include: page, limit, total, offset, order
+var (
+	ErrTaskNotFound = helpers.APIError{Code: http.StatusNotFound, Message: "resource.task.not_found"}
 )
 
 // GET: /tasks
 func (h Handler) GetTasks(c *gin.Context) {
 	user := c.MustGet("user").(*models.User)
 
+	type Payload struct {
+		Page  int   `form:"page" json:"page"`
+		Limit int   `form:"limit" json:"limit"`
+		Total int64 `form:"-" json:"total"`
+	}
+
+	payload := Payload{}
+	if err := h.ParserData(c, &payload, "resource.task"); err != nil {
+		c.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if payload.Page <= 0 {
+		payload.Page = 1
+	}
+
+	if payload.Limit <= 0 {
+		payload.Limit = 10
+	}
+
+	offset := (payload.Page - 1) * payload.Limit
+
 	ctx := context.TODO()
 	tasks := h.taskUsecase.Find(
 		ctx,
+		// TODO: Add support filters WithCount
+		filters.WithOffset(offset),
 		filters.WithFieldEqual("user_id", user.ID),
 		filters.WithFieldEqual("status", models.TaskStatusProcessing),
 	)
@@ -35,7 +65,7 @@ func (h Handler) CreateTask(c *gin.Context) {
 	}
 
 	payload := Payload{}
-	if err := c.ShouldBind(&payload); err != nil {
+	if err := h.ParserData(c, &payload, "resource.task"); err != nil {
 		c.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
@@ -68,7 +98,7 @@ func (h Handler) UpdateTask(c *gin.Context) {
 	}
 
 	payload := Payload{}
-	if err := c.ShouldBind(&payload); err != nil {
+	if err := h.ParserData(c, &payload, "resource.task"); err != nil {
 		c.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
@@ -80,12 +110,11 @@ func (h Handler) UpdateTask(c *gin.Context) {
 		filters.WithFieldEqual("id", payload.ID),
 	)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
+		c.JSON(ErrTaskNotFound.Code, ErrTaskNotFound.Message)
 		return
 	}
 
 	taskUpdates := &models.Task{}
-
 	if payload.CategoryID > 0 {
 		taskUpdates.CategoryID = payload.CategoryID
 	}
@@ -115,7 +144,7 @@ func (h Handler) DeleteTask(c *gin.Context) {
 	}
 
 	payload := Payload{}
-	if err := c.ShouldBind(&payload); err != nil {
+	if err := h.ParserData(c, &payload, "resource.task"); err != nil {
 		c.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
@@ -127,7 +156,7 @@ func (h Handler) DeleteTask(c *gin.Context) {
 		filters.WithFieldEqual("id", payload.ID),
 	)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
+		c.JSON(ErrTaskNotFound.Code, ErrTaskNotFound.Message)
 		return
 	}
 
