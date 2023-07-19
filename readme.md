@@ -1,13 +1,10 @@
-Example Backend TODO
+# Example Backend TODO
 
-Futures:
-- Token based Authentication
-- Handle Error API
+## Futures:
 - Clean Architecture
-- Unit test
-- Login, CRUD Task
-
-Uses:
+- RESTful API
+- Gorm
+- logger
+- Jwt-go
 - Gin
-- GORM
-- JWT
+- App configurable
