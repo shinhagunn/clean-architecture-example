@@ -2,34 +2,38 @@ package middlewares
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/shinhagunn/eug/filters"
+	"github.com/shinhagunn/todo-backend/internal/helper"
 	"github.com/shinhagunn/todo-backend/internal/usecases"
-	"github.com/shinhagunn/todo-backend/pkg/jwt"
+	"github.com/shinhagunn/todo-backend/pkg/util"
 )
 
 func Auth(userUsecase usecases.UserUsecase) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		help := helper.Helper{}
+
 		tokenString := c.GetHeader("Authorization")
 		if tokenString == "" && !strings.Contains(tokenString, "Bearer") {
-			c.JSON(http.StatusUnauthorized, "Authorization header missing")
+			help.ResponseError(c, helper.APIError{Code: http.StatusUnauthorized, Err: errors.New("Authorization header missing")})
 			c.Abort()
 			return
 		}
 
-		claims, err := jwt.ValidateToken(strings.TrimPrefix(tokenString, "Bearer "))
+		claims, err := util.ParseToken(strings.TrimPrefix(tokenString, "Bearer "))
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, err.Error())
+			help.ResponseError(c, helper.APIError{Code: http.StatusUnauthorized, Err: err})
 			c.Abort()
 			return
 		}
 
-		newTokenString, err := jwt.GenerateJWTToken(claims.UID)
+		newTokenString, err := util.GenerateToken(claims.UID)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, err.Error())
+			help.ResponseError(c, helper.APIError{Code: http.StatusUnauthorized, Err: err})
 			c.Abort()
 			return
 		}
@@ -38,7 +42,7 @@ func Auth(userUsecase usecases.UserUsecase) gin.HandlerFunc {
 
 		user, err := userUsecase.First(context.TODO(), filters.WithFieldEqual("uid", claims.UID))
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, err.Error())
+			help.ResponseError(c, helper.APIError{Code: http.StatusUnauthorized, Err: err})
 			c.Abort()
 			return
 		}

@@ -2,12 +2,12 @@ package identity
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/shinhagunn/todo-backend/internal/helpers"
+	"github.com/shinhagunn/todo-backend/internal/helper"
 	"github.com/shinhagunn/todo-backend/internal/usecases"
 )
 
 type Handler struct {
-	helpers.Helpers
+	helper.Helper
 	userUsecase usecases.UserUsecase
 }
 

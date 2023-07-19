@@ -4,13 +4,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/shinhagunn/todo-backend/internal/helpers"
-	"github.com/shinhagunn/todo-backend/internal/router/middlewares"
+	"github.com/shinhagunn/todo-backend/internal/helper"
 	"github.com/shinhagunn/todo-backend/internal/usecases"
 )
 
 type Handler struct {
-	helpers.Helpers
+	helper.Helper
 	userUsecase usecases.UserUsecase
 	taskUsecase usecases.TaskUsecase
 }
@@ -26,7 +25,7 @@ func NewRouter(
 	}
 
 	resource := router.Group("/resource")
-	resource.Use(middlewares.Auth(userUsecase))
+	// resource.Use(middlewares.Auth(userUsecase))
 	resource.GET("/test", func(c *gin.Context) { c.String(http.StatusOK, "OK") })
 
 	// /tasks

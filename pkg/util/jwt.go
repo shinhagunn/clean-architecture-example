@@ -1,41 +1,40 @@
-package jwt
+package util
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/shinhagunn/todo-backend/config"
 )
+
+var jwtSecret []byte
 
 type Claims struct {
 	UID string `json:"uid"`
 	jwt.StandardClaims
 }
 
-func GenerateJWTToken(uid string) (string, error) {
+func GenerateToken(uid string) (string, error) {
+	nowTime := time.Now()
+	expiresTime := nowTime.Add(3 * time.Minute)
+
 	claims := &Claims{
 		UID: uid,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(3 * time.Minute).Unix(),
+			ExpiresAt: expiresTime.Unix(),
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(config.Cfg.SecretKey))
-	if err != nil {
-		fmt.Println("Error generating token:", err)
-		return "", err
-	}
+	tokenString, err := token.SignedString(jwtSecret)
 
-	return tokenString, nil
+	return tokenString, err
 }
 
-func ValidateToken(tokenString string) (*Claims, error) {
+func ParseToken(tokenString string) (*Claims, error) {
 	claims := &Claims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(config.Cfg.SecretKey), nil
+		return jwtSecret, nil
 	})
 
 	if err != nil || !token.Valid {

@@ -1,12 +1,13 @@
 package main
 
 import (
-	"fmt"
-	"strings"
+	"github.com/shinhagunn/todo-backend/pkg/logger"
 )
 
+func init() {
+	logger.Setup()
+}
+
 func main() {
-	s := "Bearer sadfsdfsdf"
-	s = strings.TrimPrefix(s, "Bearer ")
-	fmt.Println(s)
+	// logger.Info("abc")
 }

@@ -5,26 +5,22 @@ import (
 	"testing"
 
 	"github.com/shinhagunn/eug/filters"
-	"github.com/shinhagunn/todo-backend/config"
 	"github.com/shinhagunn/todo-backend/internal/models"
 	"github.com/shinhagunn/todo-backend/pkg/postgres"
+	"github.com/shinhagunn/todo-backend/pkg/setting"
+	"github.com/shinhagunn/todo-backend/pkg/util"
 	"golang.org/x/crypto/bcrypt"
 )
+
+func init() {
+	setting.Setup()
+	util.Setup()
+}
 
 func TestUserUsecase(t *testing.T) {
 	ctx := context.TODO()
 
-	if err := config.New(); err != nil {
-		t.Fatalf("Failed to connect to config: %v", err)
-	}
-
-	db, err := postgres.New(config.Cfg)
-	if err != nil {
-		t.Fatalf("Failed to connect to database: %v", err)
-	}
-
-	db.AutoMigrate(&models.User{})
-
+	db := postgres.Setup()
 	userUsecase := NewUserUsecase(db)
 
 	newUser := &models.User{

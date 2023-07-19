@@ -6,15 +6,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/shinhagunn/eug/filters"
-	"github.com/shinhagunn/todo-backend/internal/helpers"
+	"github.com/shinhagunn/todo-backend/internal/helper"
 	"github.com/shinhagunn/todo-backend/internal/models"
-	"github.com/shinhagunn/todo-backend/pkg/jwt"
+	"github.com/shinhagunn/todo-backend/pkg/util"
 )
 
 var (
-	ErrUserPasswordInvalid = helpers.APIError{Code: http.StatusBadRequest, Message: "identity.user.password_invalid"}
-	ErrUserNotFound        = helpers.APIError{Code: http.StatusNotFound, Message: "identity.user.not_found"}
-	ErrUserJWTGenerate     = helpers.APIError{Code: http.StatusBadRequest, Message: "identity.user.jwt_generate"}
+	ErrUserPasswordInvalid = helper.NewAPIError(http.StatusBadRequest, "identity.user.password_invalid")
+	ErrUserNotFound        = helper.NewAPIError(http.StatusNotFound, "identity.user.not_found")
+	ErrUserJWTGenerate     = helper.NewAPIError(http.StatusInternalServerError, "identity.user.jwt_generate_fail")
 )
 
 // POST: /register
@@ -25,8 +25,7 @@ func (h Handler) Register(c *gin.Context) {
 	}
 
 	payload := Payload{}
-	if err := h.ParserData(c, &payload, "identity.user"); err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
+	if ok := h.BindAndValid(c, &payload, "identity.user"); !ok {
 		return
 	}
 
@@ -36,11 +35,11 @@ func (h Handler) Register(c *gin.Context) {
 	}
 
 	if err := h.userUsecase.Create(context.TODO(), user); err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
+		h.ResponseError(c, helper.APIError{Code: http.StatusBadRequest, Err: err})
 		return
 	}
 
-	c.JSON(http.StatusCreated, user)
+	h.ResponseData(c, http.StatusCreated, user)
 }
 
 // POST: /login
@@ -51,29 +50,26 @@ func (h Handler) Login(c *gin.Context) {
 	}
 	payload := Payload{}
 
-	if err := h.ParserData(c, &payload, "identity.user"); err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
+	if ok := h.BindAndValid(c, &payload, "identity.user"); !ok {
 		return
 	}
 
 	user, err := h.userUsecase.First(context.TODO(), filters.WithFieldEqual("email", payload.Email))
 	if err != nil || user == nil {
-		c.JSON(ErrUserNotFound.Code, ErrUserNotFound.Message)
+		h.ResponseError(c, ErrUserNotFound)
 		return
 	}
 
 	if !user.CheckPassword(payload.Password) {
-		c.JSON(ErrUserPasswordInvalid.Code, ErrUserPasswordInvalid.Message)
+		h.ResponseError(c, ErrUserPasswordInvalid)
 		return
 	}
 
-	token, err := jwt.GenerateJWTToken(user.UID)
+	token, err := util.GenerateToken(user.UID)
 	if err != nil {
-		c.JSON(ErrUserJWTGenerate.Code, ErrUserJWTGenerate.Message)
+		h.ResponseError(c, ErrUserJWTGenerate)
 		return
 	}
 
-	c.Header("Authorization", "Bearer "+token)
-
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	h.ResponseData(c, http.StatusOK, token)
 }

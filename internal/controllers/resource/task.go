@@ -6,13 +6,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/shinhagunn/eug/filters"
-	"github.com/shinhagunn/todo-backend/internal/helpers"
+	"github.com/shinhagunn/todo-backend/internal/helper"
 	"github.com/shinhagunn/todo-backend/internal/models"
 )
 
 // TODO: Add support func GET include: page, limit, total, offset, order
 var (
-	ErrTaskNotFound = helpers.APIError{Code: http.StatusNotFound, Message: "resource.task.not_found"}
+	ErrTaskNotFound = helper.NewAPIError(http.StatusNotFound, "resource.task.not_found")
 )
 
 // GET: /tasks
@@ -26,8 +26,7 @@ func (h Handler) GetTasks(c *gin.Context) {
 	}
 
 	payload := Payload{}
-	if err := h.ParserData(c, &payload, "resource.task"); err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
+	if ok := h.BindAndValid(c, &payload, "resource.task"); !ok {
 		return
 	}
 
@@ -50,7 +49,7 @@ func (h Handler) GetTasks(c *gin.Context) {
 		filters.WithFieldEqual("status", models.TaskStatusProcessing),
 	)
 
-	c.JSON(http.StatusCreated, tasks)
+	h.ResponseData(c, http.StatusOK, tasks)
 }
 
 // TODO: Add support deadline_at
@@ -65,8 +64,7 @@ func (h Handler) CreateTask(c *gin.Context) {
 	}
 
 	payload := Payload{}
-	if err := h.ParserData(c, &payload, "resource.task"); err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
+	if ok := h.BindAndValid(c, &payload, "resource.task"); !ok {
 		return
 	}
 
@@ -79,11 +77,11 @@ func (h Handler) CreateTask(c *gin.Context) {
 
 	ctx := context.TODO()
 	if err := h.taskUsecase.Create(ctx, task); err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
+		h.ResponseError(c, helper.APIError{Code: http.StatusBadRequest, Err: err})
 		return
 	}
 
-	c.JSON(http.StatusCreated, task)
+	h.ResponseData(c, http.StatusCreated, task)
 }
 
 // PUT: /tasks
@@ -98,8 +96,7 @@ func (h Handler) UpdateTask(c *gin.Context) {
 	}
 
 	payload := Payload{}
-	if err := h.ParserData(c, &payload, "resource.task"); err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
+	if ok := h.BindAndValid(c, &payload, "resource.task"); !ok {
 		return
 	}
 
@@ -110,7 +107,7 @@ func (h Handler) UpdateTask(c *gin.Context) {
 		filters.WithFieldEqual("id", payload.ID),
 	)
 	if err != nil {
-		c.JSON(ErrTaskNotFound.Code, ErrTaskNotFound.Message)
+		h.ResponseError(c, ErrTaskNotFound)
 		return
 	}
 
@@ -128,11 +125,11 @@ func (h Handler) UpdateTask(c *gin.Context) {
 	}
 
 	if err := h.taskUsecase.Updates(ctx, task, taskUpdates); err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
+		h.ResponseError(c, helper.APIError{Code: http.StatusBadRequest, Err: err})
 		return
 	}
 
-	c.JSON(http.StatusOK, task)
+	h.ResponseData(c, http.StatusOK, task)
 }
 
 // DELETE /task
@@ -144,8 +141,7 @@ func (h Handler) DeleteTask(c *gin.Context) {
 	}
 
 	payload := Payload{}
-	if err := h.ParserData(c, &payload, "resource.task"); err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
+	if ok := h.BindAndValid(c, &payload, "resource.task"); !ok {
 		return
 	}
 
@@ -156,12 +152,12 @@ func (h Handler) DeleteTask(c *gin.Context) {
 		filters.WithFieldEqual("id", payload.ID),
 	)
 	if err != nil {
-		c.JSON(ErrTaskNotFound.Code, ErrTaskNotFound.Message)
+		h.ResponseError(c, ErrTaskNotFound)
 		return
 	}
 
 	if err := h.taskUsecase.Delete(ctx, task); err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
+		h.ResponseError(c, helper.APIError{Code: http.StatusBadRequest, Err: err})
 		return
 	}
 

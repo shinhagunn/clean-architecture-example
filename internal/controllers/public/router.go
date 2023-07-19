@@ -7,7 +7,6 @@ import (
 )
 
 func NewRouter(router *gin.RouterGroup) {
-
 	public := router.Group("/public")
 
 	public.GET("/test", func(c *gin.Context) {
