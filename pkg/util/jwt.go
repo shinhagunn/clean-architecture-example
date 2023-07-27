@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/pkg/errors"
 )
 
 var jwtSecret []byte
@@ -27,7 +28,7 @@ func GenerateToken(uid string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(jwtSecret)
 
-	return tokenString, err
+	return tokenString, errors.Wrap(err, "signed token fail")
 }
 
 func ParseToken(tokenString string) (*Claims, error) {

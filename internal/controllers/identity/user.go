@@ -5,16 +5,11 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 	"github.com/shinhagunn/eug/filters"
-	"github.com/shinhagunn/todo-backend/internal/helper"
 	"github.com/shinhagunn/todo-backend/internal/models"
 	"github.com/shinhagunn/todo-backend/pkg/util"
-)
-
-var (
-	ErrUserPasswordInvalid = helper.NewAPIError(http.StatusBadRequest, "identity.user.password_invalid")
-	ErrUserNotFound        = helper.NewAPIError(http.StatusNotFound, "identity.user.not_found")
-	ErrUserJWTGenerate     = helper.NewAPIError(http.StatusInternalServerError, "identity.user.jwt_generate_fail")
+	"gorm.io/gorm"
 )
 
 // POST: /register
@@ -25,7 +20,8 @@ func (h Handler) Register(c *gin.Context) {
 	}
 
 	payload := Payload{}
-	if ok := h.BindAndValid(c, &payload, "identity.user"); !ok {
+	if err := h.BindAndValid(c, &payload); err != nil {
+		h.ResponseError(c, http.StatusBadRequest, errors.Wrap(err, "validate params fail"))
 		return
 	}
 
@@ -35,7 +31,7 @@ func (h Handler) Register(c *gin.Context) {
 	}
 
 	if err := h.userUsecase.Create(context.TODO(), user); err != nil {
-		h.ResponseError(c, helper.APIError{Code: http.StatusBadRequest, Err: err})
+		h.ResponseError(c, http.StatusInternalServerError, errors.Wrap(err, "register user fail"))
 		return
 	}
 
@@ -50,24 +46,30 @@ func (h Handler) Login(c *gin.Context) {
 	}
 	payload := Payload{}
 
-	if ok := h.BindAndValid(c, &payload, "identity.user"); !ok {
+	if err := h.BindAndValid(c, &payload); err != nil {
+		h.ResponseError(c, http.StatusBadRequest, errors.Wrap(err, "validate params fail"))
 		return
 	}
 
 	user, err := h.userUsecase.First(context.TODO(), filters.WithFieldEqual("email", payload.Email))
-	if err != nil || user == nil {
-		h.ResponseError(c, ErrUserNotFound)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.ResponseError(c, http.StatusNotFound, errors.Wrap(err, "user not found"))
+		} else {
+			h.ResponseError(c, http.StatusInternalServerError, errors.Wrap(err, "first user fail"))
+		}
+
 		return
 	}
 
-	if !user.CheckPassword(payload.Password) {
-		h.ResponseError(c, ErrUserPasswordInvalid)
+	if err := user.CheckPassword(payload.Password); err != nil {
+		h.ResponseError(c, http.StatusBadRequest, errors.Wrap(err, "check password fail"))
 		return
 	}
 
 	token, err := util.GenerateToken(user.UID)
 	if err != nil {
-		h.ResponseError(c, ErrUserJWTGenerate)
+		h.ResponseError(c, http.StatusInternalServerError, errors.Wrap(err, "generate token fail"))
 		return
 	}
 

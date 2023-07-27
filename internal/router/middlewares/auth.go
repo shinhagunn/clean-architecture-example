@@ -2,11 +2,11 @@ package middlewares
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 	"github.com/shinhagunn/eug/filters"
 	"github.com/shinhagunn/todo-backend/internal/helper"
 	"github.com/shinhagunn/todo-backend/internal/usecases"
@@ -19,21 +19,21 @@ func Auth(userUsecase usecases.UserUsecase) gin.HandlerFunc {
 
 		tokenString := c.GetHeader("Authorization")
 		if tokenString == "" && !strings.Contains(tokenString, "Bearer") {
-			help.ResponseError(c, helper.APIError{Code: http.StatusUnauthorized, Err: errors.New("Authorization header missing")})
+			help.ResponseError(c, http.StatusUnauthorized, errors.New("authorization header missing"))
 			c.Abort()
 			return
 		}
 
 		claims, err := util.ParseToken(strings.TrimPrefix(tokenString, "Bearer "))
 		if err != nil {
-			help.ResponseError(c, helper.APIError{Code: http.StatusUnauthorized, Err: err})
+			help.ResponseError(c, http.StatusUnauthorized, errors.Wrap(err, "parse token fail"))
 			c.Abort()
 			return
 		}
 
 		newTokenString, err := util.GenerateToken(claims.UID)
 		if err != nil {
-			help.ResponseError(c, helper.APIError{Code: http.StatusUnauthorized, Err: err})
+			help.ResponseError(c, http.StatusUnauthorized, errors.Wrap(err, "generate token fail"))
 			c.Abort()
 			return
 		}
@@ -42,7 +42,7 @@ func Auth(userUsecase usecases.UserUsecase) gin.HandlerFunc {
 
 		user, err := userUsecase.First(context.TODO(), filters.WithFieldEqual("uid", claims.UID))
 		if err != nil {
-			help.ResponseError(c, helper.APIError{Code: http.StatusUnauthorized, Err: err})
+			help.ResponseError(c, http.StatusUnauthorized, errors.Wrap(err, "user not found"))
 			c.Abort()
 			return
 		}

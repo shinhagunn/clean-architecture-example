@@ -5,15 +5,13 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 	"github.com/shinhagunn/eug/filters"
-	"github.com/shinhagunn/todo-backend/internal/helper"
 	"github.com/shinhagunn/todo-backend/internal/models"
+	"gorm.io/gorm"
 )
 
 // TODO: Add support func GET include: page, limit, total, offset, order
-var (
-	ErrTaskNotFound = helper.NewAPIError(http.StatusNotFound, "resource.task.not_found")
-)
 
 // GET: /tasks
 func (h Handler) GetTasks(c *gin.Context) {
@@ -26,7 +24,8 @@ func (h Handler) GetTasks(c *gin.Context) {
 	}
 
 	payload := Payload{}
-	if ok := h.BindAndValid(c, &payload, "resource.task"); !ok {
+	if err := h.BindAndValid(c, &payload); err != nil {
+		h.ResponseError(c, http.StatusBadRequest, errors.Wrap(err, "validate params fail"))
 		return
 	}
 
@@ -64,7 +63,8 @@ func (h Handler) CreateTask(c *gin.Context) {
 	}
 
 	payload := Payload{}
-	if ok := h.BindAndValid(c, &payload, "resource.task"); !ok {
+	if err := h.BindAndValid(c, &payload); err != nil {
+		h.ResponseError(c, http.StatusBadRequest, errors.Wrap(err, "validate params fail"))
 		return
 	}
 
@@ -77,7 +77,7 @@ func (h Handler) CreateTask(c *gin.Context) {
 
 	ctx := context.TODO()
 	if err := h.taskUsecase.Create(ctx, task); err != nil {
-		h.ResponseError(c, helper.APIError{Code: http.StatusBadRequest, Err: err})
+		h.ResponseError(c, http.StatusInternalServerError, errors.Wrap(err, "create task fail"))
 		return
 	}
 
@@ -96,7 +96,8 @@ func (h Handler) UpdateTask(c *gin.Context) {
 	}
 
 	payload := Payload{}
-	if ok := h.BindAndValid(c, &payload, "resource.task"); !ok {
+	if err := h.BindAndValid(c, &payload); err != nil {
+		h.ResponseError(c, http.StatusBadRequest, errors.Wrap(err, "validate params fail"))
 		return
 	}
 
@@ -107,7 +108,12 @@ func (h Handler) UpdateTask(c *gin.Context) {
 		filters.WithFieldEqual("id", payload.ID),
 	)
 	if err != nil {
-		h.ResponseError(c, ErrTaskNotFound)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.ResponseError(c, http.StatusNotFound, errors.Wrap(err, "task not found"))
+		} else {
+			h.ResponseError(c, http.StatusInternalServerError, errors.Wrap(err, "first task fail"))
+		}
+
 		return
 	}
 
@@ -125,7 +131,7 @@ func (h Handler) UpdateTask(c *gin.Context) {
 	}
 
 	if err := h.taskUsecase.Updates(ctx, task, taskUpdates); err != nil {
-		h.ResponseError(c, helper.APIError{Code: http.StatusBadRequest, Err: err})
+		h.ResponseError(c, http.StatusInternalServerError, errors.Wrap(err, "updates user fail"))
 		return
 	}
 
@@ -141,7 +147,8 @@ func (h Handler) DeleteTask(c *gin.Context) {
 	}
 
 	payload := Payload{}
-	if ok := h.BindAndValid(c, &payload, "resource.task"); !ok {
+	if err := h.BindAndValid(c, &payload); err != nil {
+		h.ResponseError(c, http.StatusBadRequest, errors.Wrap(err, "validate params fail"))
 		return
 	}
 
@@ -152,12 +159,17 @@ func (h Handler) DeleteTask(c *gin.Context) {
 		filters.WithFieldEqual("id", payload.ID),
 	)
 	if err != nil {
-		h.ResponseError(c, ErrTaskNotFound)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.ResponseError(c, http.StatusNotFound, errors.Wrap(err, "task not found"))
+		} else {
+			h.ResponseError(c, http.StatusInternalServerError, errors.Wrap(err, "first task fail"))
+		}
+
 		return
 	}
 
 	if err := h.taskUsecase.Delete(ctx, task); err != nil {
-		h.ResponseError(c, helper.APIError{Code: http.StatusBadRequest, Err: err})
+		h.ResponseError(c, http.StatusInternalServerError, errors.Wrap(err, "delete task fail"))
 		return
 	}
 

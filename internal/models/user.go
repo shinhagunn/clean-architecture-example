@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/pkg/errors"
 	"github.com/shinhagunn/todo-backend/pkg/util"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -23,7 +24,7 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "hash password fail")
 	}
 
 	u.Password = string(hashedPassword)
@@ -31,10 +32,7 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
-func (u *User) CheckPassword(password string) bool {
-	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)); err != nil {
-		return false
-	}
-
-	return true
+func (u *User) CheckPassword(password string) error {
+	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
+	return errors.Wrap(err, "compare hash and password fail")
 }
